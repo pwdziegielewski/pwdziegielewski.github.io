@@ -380,6 +380,12 @@ div.modal-footer > button:hover {
   border-top: none;
 }
 
+.modal-backdrop,
+.modal-backdrop.in {
+  opacity: 0.85;
+  background-color: notebook-bg;
+}
+
 div.panel,
 .panel {
   font-family: sans-serif;
