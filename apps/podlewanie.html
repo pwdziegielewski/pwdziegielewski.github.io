@@ -1,0 +1,942 @@
+---
+layout: none
+---
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#161a12">
+<title>Podlewanie — sterowanie zaworami</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💧</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --soil-0:#12150f;
+    --soil-1:#1b2016;
+    --soil-2:#242b1c;
+    --soil-3:#2e3624;
+    --line:#3a4330;
+    --mist:#eef0e4;
+    --mist-dim:#a7ae98;
+    --mist-faint:#767d68;
+    --brass:#d0a23f;
+    --leaf:#84b26b;
+    --water:#5aa0b3;
+    --rust:#c05a3a;
+    --danger:#c0503a;
+    --radius-lg:20px;
+    --radius-md:14px;
+    --radius-sm:9px;
+    --font-display:'Space Grotesk',sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-t: env(safe-area-inset-top, 0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at 20% -10%, #232a1a 0%, transparent 55%),
+      radial-gradient(ellipse at 100% 0%, #202619 0%, transparent 50%),
+      var(--soil-0);
+    color:var(--mist);
+    font-family:var(--font-display);
+    -webkit-font-smoothing:antialiased;
+    overscroll-behavior:none;
+  }
+  #app{
+    max-width:560px;
+    margin:0 auto;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ---------- Header ---------- */
+  .topbar{
+    padding:calc(18px + var(--safe-t)) 20px 14px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(208,162,63,0.06), transparent);
+  }
+  .topbar h1{
+    font-family:var(--font-mono);
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:.14em;
+    margin:0;
+    color:var(--mist);
+  }
+  .topbar h1 span{color:var(--brass);}
+  .topbar .sub{
+    font-size:11px;
+    color:var(--mist-faint);
+    font-family:var(--font-mono);
+    letter-spacing:.04em;
+  }
+
+  /* ---------- Views ---------- */
+  main{flex:1; overflow:hidden; position:relative;}
+  .view{
+    position:absolute; inset:0;
+    overflow-y:auto;
+    padding:18px 18px calc(28px + var(--safe-b));
+    display:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .view.active{display:block;}
+
+  h2.section-title{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.16em;
+    color:var(--mist-faint);
+    font-family:var(--font-mono);
+    margin:22px 0 10px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  h2.section-title:first-child{margin-top:2px;}
+  h2.section-title .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  h2.section-title .count{margin-left:auto; color:var(--mist-faint); font-weight:500;}
+
+  p.hint{
+    font-size:13px;
+    color:var(--mist-dim);
+    line-height:1.5;
+    margin:0 0 4px;
+  }
+
+  /* ---------- Chips ---------- */
+  .chip-grid{display:flex; flex-wrap:wrap; gap:8px;}
+  .chip{
+    font-family:var(--font-mono);
+    font-size:13px;
+    font-weight:600;
+    padding:9px 14px;
+    border-radius:999px;
+    border:1.5px solid var(--line);
+    background:var(--soil-2);
+    color:var(--mist-dim);
+    cursor:pointer;
+    user-select:none;
+    transition:transform .12s ease, background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .chip:active{transform:scale(.95);}
+  .chip.selected{
+    color:var(--soil-0);
+    border-color:transparent;
+    font-weight:700;
+  }
+
+  /* ---------- Result panel ---------- */
+  .result-panel{
+    margin-top:24px;
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    background:linear-gradient(160deg, var(--soil-2), var(--soil-1));
+    padding:18px;
+  }
+  .result-empty{
+    text-align:center;
+    padding:18px 6px 8px;
+    color:var(--mist-faint);
+    font-size:13px;
+  }
+  .result-empty .big{
+    font-size:34px;
+    display:block;
+    margin-bottom:6px;
+  }
+  .result-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .result-row:last-of-type{margin-bottom:0;}
+  .result-label{
+    width:78px;
+    flex:none;
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    padding-top:9px;
+    color:var(--mist-faint);
+  }
+  .result-badges{display:flex; flex-wrap:wrap; gap:8px; flex:1;}
+  .valve-badge{
+    font-family:var(--font-mono);
+    font-weight:700;
+    font-size:15px;
+    width:36px;height:36px;
+    border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    border:1.5px solid transparent;
+  }
+  .valve-badge.open{ background:var(--valve-color); color:var(--soil-0); box-shadow:0 0 0 3px color-mix(in srgb, var(--valve-color) 30%, transparent); }
+  .valve-badge.closed{ background:transparent; color:var(--mist-faint); border-color:var(--line); text-decoration:line-through; text-decoration-color:var(--rust); }
+  .none-tag{font-size:12px; color:var(--mist-faint); padding-top:9px; font-style:italic;}
+
+  .selection-summary{
+    font-size:12.5px;
+    color:var(--mist-dim);
+    margin-bottom:14px;
+    padding-bottom:14px;
+    border-bottom:1px dashed var(--line);
+  }
+  .selection-summary b{color:var(--mist); font-weight:600;}
+  .clear-link{
+    background:none;border:none;color:var(--rust);font-family:var(--font-mono);
+    font-size:11px; letter-spacing:.05em; text-transform:uppercase; padding:0; margin-top:2px;
+    cursor:pointer;
+  }
+
+  .tree-wrap{margin-top:14px; display:flex; justify-content:center;}
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    font-family:var(--font-mono);
+    font-weight:600;
+    font-size:12.5px;
+    letter-spacing:.04em;
+    padding:11px 16px;
+    border-radius:var(--radius-sm);
+    border:1.5px solid var(--line);
+    background:var(--soil-2);
+    color:var(--mist);
+    cursor:pointer;
+    text-transform:uppercase;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn.primary{background:var(--leaf); color:var(--soil-0); border-color:transparent;}
+  .btn.ghost{background:transparent;}
+  .btn.danger{color:var(--rust); border-color:var(--rust);}
+  .btn.block{width:100%;}
+  .btn-row{display:flex; gap:10px; margin-top:14px;}
+
+  /* ---------- Map ---------- */
+  .map-toolbar{
+    display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap;
+  }
+  .map-toolbar .spacer{flex:1;}
+  .draw-banner{
+    background:var(--soil-2);
+    border:1px dashed var(--brass);
+    border-radius:var(--radius-md);
+    padding:10px 12px;
+    font-size:12.5px;
+    color:var(--mist-dim);
+    margin-bottom:10px;
+    display:none;
+  }
+  .draw-banner.active{display:flex; align-items:center; gap:10px; justify-content:space-between;}
+  .map-canvas-wrap{
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    background:
+      linear-gradient(180deg, #1c2416, #171d12);
+    overflow:hidden;
+  }
+  svg.garden{display:block; width:100%; height:auto; touch-action:manipulation;}
+  svg.garden.drawing{touch-action:none;}
+
+  .zone-shape{
+    stroke-width:2;
+    cursor:pointer;
+    transition:opacity .15s ease;
+  }
+  .zone-shape:active{opacity:.7;}
+  .zone-label{
+    font-family:var(--font-mono);
+    font-size:11px;
+    font-weight:600;
+    fill:var(--mist);
+    pointer-events:none;
+    text-anchor:middle;
+    dominant-baseline:middle;
+  }
+  .deco-rect{fill:#3a1f22; stroke:#5b3236; stroke-width:1.5; opacity:.85;}
+  .deco-label{font-family:var(--font-mono); font-size:11px; fill:#caa9ab; text-anchor:middle; dominant-baseline:middle; letter-spacing:.05em; pointer-events:none;}
+  .blocked-cell{fill:var(--soil-1); stroke:var(--line); stroke-width:1.5; stroke-dasharray:3 3;}
+  .blocked-label{font-family:var(--font-mono); font-size:16px; fill:var(--mist-faint); text-anchor:middle; dominant-baseline:middle; pointer-events:none;}
+  .valve-ref circle{fill:var(--soil-0); stroke:var(--valve-color); stroke-width:2.5;}
+  .valve-ref text{font-family:var(--font-mono); font-weight:700; font-size:12px; fill:var(--valve-color); text-anchor:middle; dominant-baseline:middle; pointer-events:none;}
+
+  .draw-point{fill:var(--brass); stroke:var(--soil-0); stroke-width:1.5;}
+  .draw-line{stroke:var(--brass); stroke-width:2; stroke-dasharray:4 4; fill:none;}
+
+  /* ---------- Valve tree diagram ---------- */
+  .tree-svg .edge{stroke:var(--line); stroke-width:4; fill:none; stroke-linecap:round;}
+  .tree-svg .edge.active{stroke:var(--brass); stroke-dasharray:6 6; animation:flow 0.6s linear infinite;}
+  @keyframes flow{ to{ stroke-dashoffset:-12; } }
+  .tree-svg .node-circle{stroke-width:2.5;}
+  .tree-svg .node-open .node-circle{fill:var(--valve-color); stroke:var(--valve-color);}
+  .tree-svg .node-closed .node-circle{fill:var(--soil-1); stroke:var(--line);}
+  .tree-svg .node-letter{font-family:var(--font-mono); font-weight:700; font-size:17px; text-anchor:middle; dominant-baseline:middle;}
+  .tree-svg .node-open .node-letter{fill:var(--soil-0);}
+  .tree-svg .node-closed .node-letter{fill:var(--mist-faint);}
+  .tree-svg .node-sub{font-family:var(--font-mono); font-size:9px; fill:var(--mist-faint); text-anchor:middle;}
+
+  .legend-list{margin-top:18px; display:flex; flex-direction:column; gap:10px;}
+  .legend-row{
+    display:flex; align-items:center; gap:10px;
+    background:var(--soil-2); border:1px solid var(--line); border-radius:var(--radius-md);
+    padding:10px 12px;
+  }
+  .legend-badge{
+    width:30px;height:30px;border-radius:8px;flex:none;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono); font-weight:700; font-size:13px; color:var(--soil-0);
+    background:var(--valve-color);
+  }
+  .legend-text{font-size:12.5px; color:var(--mist-dim); line-height:1.4;}
+  .legend-text b{color:var(--mist); font-weight:600;}
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(10,12,7,.72);
+    display:none; align-items:flex-end; justify-content:center; z-index:50;
+    backdrop-filter:blur(2px);
+  }
+  .modal-backdrop.active{display:flex;}
+  .modal-sheet{
+    width:100%; max-width:560px;
+    background:var(--soil-2);
+    border:1px solid var(--line);
+    border-bottom:none;
+    border-radius:20px 20px 0 0;
+    padding:20px 20px calc(20px + var(--safe-b));
+    animation:slideup .18s ease;
+  }
+  @keyframes slideup{ from{transform:translateY(24px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+  .modal-sheet h3{margin:0 0 14px; font-size:15px; font-family:var(--font-mono); letter-spacing:.04em;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--mist-faint); margin-bottom:6px; font-family:var(--font-mono);}
+  .field input[type=text], .field select{
+    width:100%; padding:11px 12px; border-radius:var(--radius-sm);
+    border:1.5px solid var(--line); background:var(--soil-1); color:var(--mist);
+    font-family:var(--font-display); font-size:15px;
+  }
+  .field select{font-family:var(--font-mono); font-weight:600;}
+  .toast{
+    position:fixed; left:50%; bottom:calc(90px + var(--safe-b)); transform:translateX(-50%);
+    background:var(--soil-3); border:1px solid var(--line); color:var(--mist);
+    padding:12px 16px; border-radius:12px; font-size:13px; z-index:60;
+    display:flex; align-items:center; gap:12px; max-width:88%;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);
+    opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px); pointer-events:auto;}
+  .toast button{
+    background:var(--leaf); color:var(--soil-0); border:none; border-radius:8px;
+    font-family:var(--font-mono); font-weight:700; font-size:11.5px; padding:7px 10px;
+    white-space:nowrap; cursor:pointer;
+  }
+
+  /* ---------- Tab bar ---------- */
+  .tabbar{
+    display:flex;
+    border-top:1px solid var(--line);
+    background:var(--soil-1);
+    padding-bottom:var(--safe-b);
+  }
+  .tabbar button{
+    flex:1;
+    background:none; border:none;
+    padding:12px 6px 10px;
+    color:var(--mist-faint);
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    cursor:pointer;
+  }
+  .tabbar button .ico{font-size:19px; line-height:1;}
+  .tabbar button.active{color:var(--brass);}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div>
+      <h1>OGRÓD <span>//</span> ZAWORY</h1>
+      <div class="sub" id="header-sub">4 zawory · 16 stref</div>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- ===================== WIDOK: PODLEWAJ ===================== -->
+    <section class="view active" id="view-water">
+      <p class="hint">Wybierz strefy, które chcesz podlać. Pokażę, które zawory otworzyć, a które zamknąć.</p>
+      <div id="water-groups"></div>
+
+      <div class="result-panel" id="result-panel"></div>
+    </section>
+
+    <!-- ===================== WIDOK: MAPA ===================== -->
+    <section class="view" id="view-map">
+      <div class="map-toolbar">
+        <button class="btn" id="btn-edit-toggle">Edytuj mapę</button>
+        <div class="spacer"></div>
+        <button class="btn ghost" id="btn-reset-map" style="display:none;">Resetuj</button>
+        <button class="btn primary" id="btn-add-zone" style="display:none;">+ Dodaj strefę</button>
+      </div>
+
+      <div class="draw-banner" id="draw-banner">
+        <span id="draw-banner-text">Stuknij mapę, aby dodać punkty kształtu (min. 3).</span>
+      </div>
+      <div class="btn-row" id="draw-actions" style="display:none;">
+        <button class="btn ghost block" id="btn-draw-cancel">Anuluj</button>
+        <button class="btn primary block" id="btn-draw-finish" disabled>Zakończ kształt</button>
+      </div>
+
+      <div class="map-canvas-wrap">
+        <svg class="garden" id="garden-svg" viewBox="0 0 400 880" xmlns="http://www.w3.org/2000/svg">
+          <g id="deco-layer"></g>
+          <g id="zones-layer"></g>
+          <g id="valve-ref-layer"></g>
+          <g id="draw-layer"></g>
+        </svg>
+      </div>
+      <p class="hint" style="margin-top:12px;">Kropki A / B / C / D na mapie pokazują przybliżone położenie fizycznych zaworów.</p>
+    </section>
+
+    <!-- ===================== WIDOK: ZAWORY ===================== -->
+    <section class="view" id="view-valves">
+      <p class="hint">Stała struktura instalacji — zawór główny A, dwa wolne wyjścia, dwie tablice podrzędne.</p>
+      <div class="tree-wrap"><div id="tree-static"></div></div>
+      <div class="legend-list" id="valve-legend"></div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar">
+    <button class="active" data-view="water"><span class="ico">💧</span>Podlewaj</button>
+    <button data-view="map"><span class="ico">🗺️</span>Mapa</button>
+    <button data-view="valves"><span class="ico">🔧</span>Zawory</button>
+  </nav>
+</div>
+
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal-sheet" id="modal-sheet"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     DANE / STRUKTURA ZAWORÓW  (na sztywno, wg schematu)
+     A = zawór główny (2 wyjścia wolne, 2 do tablic B i D)
+     B = tablica podrzędna A, ma dalej tablicę C
+     D = tablica podrzędna A (bez dalszych odgałęzień)
+  ============================================================ */
+  const VALVES = {
+    A: { parent: null, order:0, desc:"Zawór główny — 2 wyjścia wolne, 2 do tablic" },
+    B: { parent: "A",  order:1, desc:"Tablica podrzędna zaworu A" },
+    C: { parent: "B",  order:2, desc:"Tablica podrzędna zaworu B" },
+    D: { parent: "A",  order:3, desc:"Tablica podrzędna zaworu A" }
+  };
+  const VALVE_COLORS = { A:"#d0a23f", B:"#84b26b", C:"#5aa0b3", D:"#c05a3a" };
+  const VALVE_ORDER = ["A","B","C","D"];
+
+  function ancestorPath(valveId){
+    const path = [];
+    let v = valveId;
+    while(v){ path.push(v); v = VALVES[v] ? VALVES[v].parent : null; }
+    return path;
+  }
+  function childrenOf(valveId){
+    return VALVE_ORDER.filter(id => VALVES[id].parent === valveId);
+  }
+
+  /* ============================================================
+     DOMYŚLNE STREFY (na podstawie szkicu użytkownika)
+  ============================================================ */
+  function rectPts(x,y,w,h){ return [[x,y],[x+w,y],[x+w,y+h],[x,y+h]]; }
+
+  const DEFAULT_ZONES = [
+    {id:"z-a0", name:"A.0", valve:"A", points:rectPts(60,20,280,90)},
+    {id:"z-a1", name:"A.1", valve:"A", points:rectPts(60,240,140,80)},
+    {id:"z-a2", name:"A.2", valve:"A", points:rectPts(200,240,140,80)},
+
+    {id:"z-b0", name:"B.0", valve:"B", points:rectPts(110,340,230,46)},
+    {id:"z-b1", name:"B.1", valve:"B", points:rectPts(110,386,230,47)},
+    {id:"z-b2", name:"B.2", valve:"B", points:rectPts(110,433,230,47)},
+
+    {id:"z-c1", name:"C.1", valve:"C", points:rectPts(60,480,160,70)},
+    {id:"z-c2", name:"C.2", valve:"C", points:rectPts(220,480,160,70)},
+    {id:"z-c3", name:"C.3", valve:"C", points:rectPts(60,550,93,70)},
+    {id:"z-c4", name:"C.4", valve:"C", points:rectPts(60,620,93,70)},
+    {id:"z-c5", name:"C.5", valve:"C", points:rectPts(60,690,93,70)},
+
+    {id:"z-d1", name:"D.1", valve:"D", points:rectPts(153,550,93,70)},
+    {id:"z-d2", name:"D.2", valve:"D", points:rectPts(246,550,94,70)},
+    {id:"z-d3", name:"D.3", valve:"D", points:rectPts(246,620,94,70)},
+    {id:"z-d5", name:"D.5", valve:"D", points:rectPts(153,690,93,70)},
+    {id:"z-d4", name:"D.4", valve:"D", points:rectPts(246,690,94,70)}
+  ];
+
+  const DECORATIONS = [
+    {kind:"building", label:"Dom", x:110,y:130,w:180,h:90},
+    {kind:"building", label:"Garaż", x:10,y:340,w:90,h:90},
+    {kind:"building", label:"Bud. gosp.", x:60,y:770,w:280,h:90},
+    {kind:"blocked", x:153,y:620,w:93,h:70}
+  ];
+
+  const VALVE_MAP_POS = { A:[200,240], B:[110,340], C:[60,480], D:[340,550] };
+
+  /* ============================================================
+     STAN / ZAPIS
+  ============================================================ */
+  const STORAGE_KEY = "ogrod_zones_v1";
+  let zones = loadZones();
+  let selectedZones = new Set();
+  let editMode = false;
+  let drawing = false;
+  let drawPoints = [];
+
+  function loadZones(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed) && parsed.length) return parsed; }
+    }catch(e){}
+    return JSON.parse(JSON.stringify(DEFAULT_ZONES));
+  }
+  function saveZones(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(zones)); }catch(e){}
+  }
+  function genId(){ return "z-" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+  /* ============================================================
+     POMOCNICZE
+  ============================================================ */
+  function centroid(points){
+    let sx=0, sy=0;
+    points.forEach(p=>{sx+=p[0]; sy+=p[1];});
+    return [sx/points.length, sy/points.length];
+  }
+  function ptsToAttr(points){ return points.map(p=>p[0]+","+p[1]).join(" "); }
+  function hexToRgba(hex, a){
+    const h = hex.replace('#','');
+    const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+    return "rgba("+r+","+g+","+b+","+a+")";
+  }
+  function svgEl(tag, attrs){
+    const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for(const k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  function zoneById(id){ return zones.find(z=>z.id===id); }
+
+  /* ============================================================
+     RENDER: drzewo zaworów (schemat)
+  ============================================================ */
+  const TREE_POS = { A:[150,36], B:[85,116], D:[215,116], C:[85,196] };
+  const TREE_EDGES = [["A","B"],["A","D"],["B","C"]];
+
+  function renderTree(container, activeSet){
+    activeSet = activeSet || new Set();
+    const svg = svgEl("svg", {class:"tree-svg", viewBox:"0 0 300 236", width:"260", height:"204"});
+
+    TREE_EDGES.forEach(([p,c])=>{
+      const [x1,y1] = TREE_POS[p], [x2,y2] = TREE_POS[c];
+      const active = activeSet.has(c);
+      const line = svgEl("line", {x1,y1,x2,y2, class:"edge"+(active?" active":"")});
+      svg.appendChild(line);
+    });
+
+    VALVE_ORDER.forEach(id=>{
+      const [x,y] = TREE_POS[id];
+      const open = activeSet.has(id);
+      const g = svgEl("g", {class:"node "+(open?"node-open":"node-closed")});
+      g.style.setProperty("--valve-color", VALVE_COLORS[id]);
+      const circle = svgEl("circle", {cx:x, cy:y, r:22, class:"node-circle"});
+      const text = svgEl("text", {x, y:y+1, class:"node-letter"});
+      text.textContent = id;
+      g.appendChild(circle); g.appendChild(text);
+      svg.appendChild(g);
+    });
+
+    container.innerHTML = "";
+    container.appendChild(svg);
+  }
+
+  /* ============================================================
+     RENDER: mapa ogrodu
+  ============================================================ */
+  const decoLayer = document.getElementById("deco-layer");
+  const zonesLayer = document.getElementById("zones-layer");
+  const valveRefLayer = document.getElementById("valve-ref-layer");
+  const drawLayer = document.getElementById("draw-layer");
+  const gardenSvg = document.getElementById("garden-svg");
+
+  function renderDecorations(){
+    decoLayer.innerHTML = "";
+    DECORATIONS.forEach(d=>{
+      if(d.kind === "building"){
+        const r = svgEl("rect", {x:d.x,y:d.y,width:d.w,height:d.h, rx:10, class:"deco-rect"});
+        const t = svgEl("text", {x:d.x+d.w/2, y:d.y+d.h/2, class:"deco-label"});
+        t.textContent = d.label;
+        decoLayer.appendChild(r); decoLayer.appendChild(t);
+      } else if(d.kind === "blocked"){
+        const r = svgEl("rect", {x:d.x,y:d.y,width:d.w,height:d.h, rx:6, class:"blocked-cell"});
+        const t = svgEl("text", {x:d.x+d.w/2, y:d.y+d.h/2, class:"blocked-label"});
+        t.textContent = "—";
+        decoLayer.appendChild(r); decoLayer.appendChild(t);
+      }
+    });
+  }
+
+  function renderValveRefs(){
+    valveRefLayer.innerHTML = "";
+    VALVE_ORDER.forEach(id=>{
+      const [x,y] = VALVE_MAP_POS[id];
+      const g = svgEl("g", {class:"valve-ref"});
+      g.style.setProperty("--valve-color", VALVE_COLORS[id]);
+      const c = svgEl("circle", {cx:x, cy:y, r:13});
+      const t = svgEl("text", {x, y:y+1});
+      t.textContent = id;
+      g.appendChild(c); g.appendChild(t);
+      valveRefLayer.appendChild(g);
+    });
+  }
+
+  function renderZones(){
+    zonesLayer.innerHTML = "";
+    zones.forEach(z=>{
+      const color = VALVE_COLORS[z.valve] || "#888";
+      const poly = svgEl("polygon", {
+        points: ptsToAttr(z.points),
+        class:"zone-shape",
+        style:"fill:"+hexToRgba(color,.30)+";stroke:"+color+";",
+        "data-id": z.id
+      });
+      zonesLayer.appendChild(poly);
+      const [cx,cy] = centroid(z.points);
+      const label = z.name.length>10 ? z.name.slice(0,9)+"…" : z.name;
+      const t = svgEl("text", {x:cx, y:cy, class:"zone-label"});
+      t.textContent = label;
+      zonesLayer.appendChild(t);
+    });
+  }
+
+  function renderMap(){ renderDecorations(); renderZones(); renderValveRefs(); }
+
+  gardenSvg.addEventListener("pointerdown", (e)=>{
+    const [x,y] = toSvgPoint(e);
+    if(drawing){
+      drawPoints.push([x,y]);
+      renderDrawPreview();
+      document.getElementById("btn-draw-finish").disabled = drawPoints.length < 3;
+      return;
+    }
+    const target = e.target.closest(".zone-shape");
+    if(!target) return;
+    const zone = zoneById(target.dataset.id);
+    if(!zone) return;
+    if(editMode){ openEditZoneModal(zone); }
+    else { showZoneToast(zone); }
+  });
+
+  function toSvgPoint(evt){
+    const rect = gardenSvg.getBoundingClientRect();
+    const vb = gardenSvg.viewBox.baseVal;
+    const x = ((evt.clientX - rect.left) / rect.width) * vb.width + vb.x;
+    const y = ((evt.clientY - rect.top) / rect.height) * vb.height + vb.y;
+    return [Math.round(x), Math.round(y)];
+  }
+
+  function renderDrawPreview(){
+    drawLayer.innerHTML = "";
+    if(drawPoints.length >= 2){
+      const line = svgEl("polyline", {points: ptsToAttr(drawPoints), class:"draw-line"});
+      drawLayer.appendChild(line);
+    }
+    drawPoints.forEach(p=>{
+      const c = svgEl("circle", {cx:p[0], cy:p[1], r:5, class:"draw-point"});
+      drawLayer.appendChild(c);
+    });
+  }
+
+  function startDrawing(){
+    drawing = true;
+    drawPoints = [];
+    gardenSvg.classList.add("drawing");
+    document.getElementById("draw-banner").classList.add("active");
+    document.getElementById("draw-actions").style.display = "flex";
+    document.getElementById("btn-add-zone").style.display = "none";
+    renderDrawPreview();
+  }
+  function stopDrawing(){
+    drawing = false;
+    drawPoints = [];
+    gardenSvg.classList.remove("drawing");
+    document.getElementById("draw-banner").classList.remove("active");
+    document.getElementById("draw-actions").style.display = "none";
+    document.getElementById("btn-add-zone").style.display = editMode ? "inline-block" : "none";
+    drawLayer.innerHTML = "";
+  }
+
+  document.getElementById("btn-add-zone").addEventListener("click", startDrawing);
+  document.getElementById("btn-draw-cancel").addEventListener("click", stopDrawing);
+  document.getElementById("btn-draw-finish").addEventListener("click", ()=>{
+    if(drawPoints.length < 3) return;
+    const pts = drawPoints.slice();
+    stopDrawing();
+    openNewZoneModal(pts);
+  });
+
+  document.getElementById("btn-edit-toggle").addEventListener("click", ()=>{
+    editMode = !editMode;
+    const btn = document.getElementById("btn-edit-toggle");
+    btn.textContent = editMode ? "Gotowe" : "Edytuj mapę";
+    btn.classList.toggle("primary", editMode);
+    document.getElementById("btn-add-zone").style.display = editMode ? "inline-block" : "none";
+    document.getElementById("btn-reset-map").style.display = editMode ? "inline-block" : "none";
+    if(!editMode) stopDrawing();
+  });
+
+  document.getElementById("btn-reset-map").addEventListener("click", ()=>{
+    if(confirm("Przywrócić domyślny układ mapy? Twoje własne strefy zostaną usunięte.")){
+      zones = JSON.parse(JSON.stringify(DEFAULT_ZONES));
+      saveZones();
+      renderMap();
+      renderWaterView();
+    }
+  });
+
+  /* ============================================================
+     MODALE
+  ============================================================ */
+  const backdrop = document.getElementById("modal-backdrop");
+  const sheet = document.getElementById("modal-sheet");
+  function closeModal(){ backdrop.classList.remove("active"); sheet.innerHTML=""; }
+  backdrop.addEventListener("click", (e)=>{ if(e.target===backdrop) closeModal(); });
+
+  function valveOptionsHtml(selected){
+    return VALVE_ORDER.map(id=>
+      `<option value="${id}" ${id===selected?"selected":""}>${id} — ${VALVES[id].desc}</option>`
+    ).join("");
+  }
+
+  function openNewZoneModal(points){
+    sheet.innerHTML = `
+      <h3>Nowa strefa</h3>
+      <div class="field"><label>Nazwa</label><input type="text" id="f-name" placeholder="np. Rabata róż" autofocus></div>
+      <div class="field"><label>Zawór</label><select id="f-valve">${valveOptionsHtml("A")}</select></div>
+      <div class="btn-row">
+        <button class="btn ghost block" id="f-cancel">Anuluj</button>
+        <button class="btn primary block" id="f-save">Zapisz strefę</button>
+      </div>`;
+    backdrop.classList.add("active");
+    document.getElementById("f-cancel").addEventListener("click", closeModal);
+    document.getElementById("f-save").addEventListener("click", ()=>{
+      const name = document.getElementById("f-name").value.trim() || "Strefa";
+      const valve = document.getElementById("f-valve").value;
+      zones.push({id:genId(), name, valve, points});
+      saveZones();
+      renderMap();
+      renderWaterView();
+      closeModal();
+    });
+  }
+
+  function openEditZoneModal(zone){
+    sheet.innerHTML = `
+      <h3>Edytuj strefę</h3>
+      <div class="field"><label>Nazwa</label><input type="text" id="f-name" value="${zone.name.replace(/"/g,'&quot;')}"></div>
+      <div class="field"><label>Zawór</label><select id="f-valve">${valveOptionsHtml(zone.valve)}</select></div>
+      <div class="btn-row">
+        <button class="btn danger block" id="f-delete">Usuń strefę</button>
+        <button class="btn primary block" id="f-save">Zapisz</button>
+      </div>
+      <button class="btn ghost block" id="f-cancel" style="margin-top:10px;">Anuluj</button>`;
+    backdrop.classList.add("active");
+    document.getElementById("f-cancel").addEventListener("click", closeModal);
+    document.getElementById("f-delete").addEventListener("click", ()=>{
+      if(confirm(`Usunąć strefę „${zone.name}”?`)){
+        zones = zones.filter(z=>z.id!==zone.id);
+        selectedZones.delete(zone.id);
+        saveZones(); renderMap(); renderWaterView(); closeModal();
+      }
+    });
+    document.getElementById("f-save").addEventListener("click", ()=>{
+      zone.name = document.getElementById("f-name").value.trim() || zone.name;
+      zone.valve = document.getElementById("f-valve").value;
+      saveZones(); renderMap(); renderWaterView(); closeModal();
+    });
+  }
+
+  /* ============================================================
+     TOAST (widok mapy poza edycją)
+  ============================================================ */
+  const toastEl = document.getElementById("toast");
+  let toastTimer = null;
+  function showZoneToast(zone){
+    clearTimeout(toastTimer);
+    toastEl.innerHTML = `<span>Strefa <b>${zone.name}</b> · zawór ${zone.valve}</span><button id="toast-go">Podlej →</button>`;
+    toastEl.classList.add("show");
+    document.getElementById("toast-go").addEventListener("click", ()=>{
+      selectedZones = new Set([zone.id]);
+      switchView("water");
+      renderWaterView();
+      hideToast();
+    });
+    toastTimer = setTimeout(hideToast, 3800);
+  }
+  function hideToast(){ toastEl.classList.remove("show"); }
+
+  /* ============================================================
+     WIDOK: PODLEWAJ
+  ============================================================ */
+  const waterGroups = document.getElementById("water-groups");
+  const resultPanel = document.getElementById("result-panel");
+
+  function renderWaterView(){
+    waterGroups.innerHTML = "";
+    VALVE_ORDER.forEach(vid=>{
+      const zs = zones.filter(z=>z.valve===vid);
+      if(!zs.length) return;
+      const title = document.createElement("h2");
+      title.className = "section-title";
+      title.innerHTML = `<span class="dot" style="background:${VALVE_COLORS[vid]}"></span> Zawór ${vid} <span class="count">${zs.length} ${zs.length===1?"strefa":"strefy"}</span>`;
+      waterGroups.appendChild(title);
+
+      const grid = document.createElement("div");
+      grid.className = "chip-grid";
+      zs.forEach(z=>{
+        const chip = document.createElement("button");
+        chip.className = "chip" + (selectedZones.has(z.id) ? " selected" : "");
+        chip.textContent = z.name;
+        if(selectedZones.has(z.id)) chip.style.background = VALVE_COLORS[vid];
+        chip.addEventListener("click", ()=>{
+          if(selectedZones.has(z.id)) selectedZones.delete(z.id);
+          else selectedZones.add(z.id);
+          renderWaterView();
+        });
+        grid.appendChild(chip);
+      });
+      waterGroups.appendChild(grid);
+    });
+    renderResultPanel();
+  }
+
+  function renderResultPanel(){
+    if(selectedZones.size === 0){
+      resultPanel.innerHTML = `<div class="result-empty"><span class="big">💧</span>Wybierz strefę powyżej, żeby zobaczyć, które zawory otworzyć.</div>`;
+      const w = document.createElement("div"); w.className="tree-wrap";
+      const holder = document.createElement("div");
+      w.appendChild(holder);
+      resultPanel.appendChild(w);
+      renderTree(holder, new Set());
+      return;
+    }
+
+    const openSet = new Set();
+    selectedZones.forEach(zid=>{
+      const z = zoneById(zid);
+      if(!z) return;
+      ancestorPath(z.valve).forEach(v=>openSet.add(v));
+    });
+    const closedSet = VALVE_ORDER.filter(v=>!openSet.has(v));
+    const openSorted = VALVE_ORDER.filter(v=>openSet.has(v));
+
+    const names = Array.from(selectedZones).map(id=>{ const z=zoneById(id); return z?z.name:null; }).filter(Boolean);
+
+    resultPanel.innerHTML = `
+      <div class="selection-summary">Podlewasz: <b>${names.join(", ")}</b><br>
+        <button class="clear-link" id="clear-sel">wyczyść wybór</button>
+      </div>
+      <div class="result-row">
+        <div class="result-label">Otwórz</div>
+        <div class="result-badges" id="badges-open"></div>
+      </div>
+      <div class="result-row">
+        <div class="result-label">Zamknij</div>
+        <div class="result-badges" id="badges-closed"></div>
+      </div>
+      <div class="tree-wrap" id="result-tree"></div>
+    `;
+    document.getElementById("clear-sel").addEventListener("click", ()=>{ selectedZones.clear(); renderWaterView(); });
+
+    const openBox = document.getElementById("badges-open");
+    if(openSorted.length===0){ openBox.innerHTML = `<span class="none-tag">brak</span>`; }
+    openSorted.forEach(v=>{
+      const b = document.createElement("div");
+      b.className = "valve-badge open";
+      b.style.setProperty("--valve-color", VALVE_COLORS[v]);
+      b.textContent = v;
+      openBox.appendChild(b);
+    });
+    const closedBox = document.getElementById("badges-closed");
+    if(closedSet.length===0){ closedBox.innerHTML = `<span class="none-tag">brak</span>`; }
+    closedSet.forEach(v=>{
+      const b = document.createElement("div");
+      b.className = "valve-badge closed";
+      b.textContent = v;
+      closedBox.appendChild(b);
+    });
+
+    renderTree(document.getElementById("result-tree"), openSet);
+  }
+
+  /* ============================================================
+     WIDOK: ZAWORY (statyczny schemat + legenda)
+  ============================================================ */
+  function renderValvesView(){
+    renderTree(document.getElementById("tree-static"), new Set());
+    const legend = document.getElementById("valve-legend");
+    legend.innerHTML = "";
+    VALVE_ORDER.forEach(vid=>{
+      const count = zones.filter(z=>z.valve===vid).length;
+      const path = ancestorPath(vid).reverse().join(" → ");
+      const row = document.createElement("div");
+      row.className = "legend-row";
+      row.innerHTML = `<div class="legend-badge" style="--valve-color:${VALVE_COLORS[vid]}">${vid}</div>
+        <div class="legend-text"><b>Zawór ${vid}</b> — ${VALVES[vid].desc}<br>${count} ${count===1?"strefa":"stref"} · ścieżka: ${path}</div>`;
+      legend.appendChild(row);
+    });
+  }
+
+  /* ============================================================
+     NAWIGACJA
+  ============================================================ */
+  function switchView(name){
+    document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.id === "view-"+name));
+    document.querySelectorAll(".tabbar button").forEach(b=>b.classList.toggle("active", b.dataset.view===name));
+  }
+  document.querySelectorAll(".tabbar button").forEach(btn=>{
+    btn.addEventListener("click", ()=>switchView(btn.dataset.view));
+  });
+
+  /* ============================================================
+     INIT
+  ============================================================ */
+  function updateHeaderSub(){
+    document.getElementById("header-sub").textContent = `4 zawory · ${zones.length} stref`;
+  }
+
+  renderMap();
+  renderWaterView();
+  renderValvesView();
+  updateHeaderSub();
+
+})();
+</script>
+</body>
+</html>
