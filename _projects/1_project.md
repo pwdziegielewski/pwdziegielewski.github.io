@@ -1,7 +1,7 @@
 ---
 layout: page
-title: project 1
-description: with background image
+title: Wysokie ciśnienie
+description: Stopy metali w wysokim ciśnieniu
 img: assets/img/12.jpg
 importance: 1
 category: work
@@ -16,7 +16,7 @@ To give your project a background in the portfolio page, just add the img tag to
 
     ---
     layout: page
-    title: project
+    title: Stopy metali w warunkach wysokiego ciśnienia
     description: a project with a background image
     img: /assets/img/12.jpg
     ---
