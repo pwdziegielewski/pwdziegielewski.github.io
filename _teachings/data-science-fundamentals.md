@@ -1,11 +1,11 @@
 ---
 layout: course
-title: Data Science Fundamentals
-description: This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.
+title: Metody obliczeniowe w fizyce fazy skondensowanej
+description: Kurs technik obliczeniowych, w szczególności zastosowania dynamiki molekularnej, do badania procesów i właściwości ciał stałych i cieczy.
 instructor: Prof. Data
-year: 2024
-term: Spring
-location: Science Building, Room 202
+year: 2027
+term: Wiosna
+location: Wydział Fizyki, pracownie komputerowe
 time: Mondays and Wednesdays, 2:00-3:30 PM
 course_id: data-science-fundamentals
 schedule:
