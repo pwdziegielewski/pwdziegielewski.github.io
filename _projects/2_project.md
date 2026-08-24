@@ -1,7 +1,7 @@
 ---
 layout: page
-title: project 2
-description: a project with a background image and giscus comments
+title: Sodowe przewodniki jonowe
+description: Poszukiwania elektrolitów stałych na bazie Na
 img: assets/img/3.jpg
 importance: 2
 category: work
@@ -16,7 +16,7 @@ To give your project a background in the portfolio page, just add the img tag to
 
     ---
     layout: page
-    title: project
+    title: Elektrolity sodowe do nowoczesnych baterii
     description: a project with a background image
     img: /assets/img/12.jpg
     ---
