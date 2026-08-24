@@ -2,7 +2,7 @@
 layout: book-review
 title: Harry Potter - seria
 author: J. K. Rowling 
-cover: assets/img/book_covers/the_godfather.jpg
+cover: assets/img/book_covers/hp.png
 categories: powieść
 stars: 5
 goodreads_review: 6318556633
