@@ -2,7 +2,7 @@
 layout: about
 title: about
 permalink: /
-subtitle: <a href='#'>Affiliations</a>. Address. Contacts. Motto. Etc.
+<!-- subtitle: <a href='#'>Affiliations</a>. Address. Contacts. Motto. Etc. -->
 
 profile:
   align: right
@@ -27,4 +27,5 @@ latest_posts:
   limit: 3 # leave blank to include all the blog posts
 ---
 
-Cześć, witaj na mojej prywatnej stronie internetowej. Znajdziesz tutaj informacje o mojej pracy naukowej, materiały dydaktyczne oraz inne mniej lub bardziej przydatne materiały dookoła naukowe jak i związane z moimi zainteresowaniami. 
+<p>Cześć,</p> 
+<p></p>witaj na mojej prywatnej stronie internetowej. Znajdziesz tutaj informacje o mojej pracy naukowej, materiały dydaktyczne oraz inne mniej lub bardziej przydatne materiały dookoła naukowe jak i związane z moimi zainteresowaniami. <\p>
